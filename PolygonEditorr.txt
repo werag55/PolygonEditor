@@ -1,0 +1,40 @@
+Pasek menu: 
+1) Mode: możliwa zmiana trybu pomiędzy rysowaniem a edytowaniem.
+2) Settings: możliwa zmiana ustawień, to jest algorytmu rysującego linie (biblioteczny/Bresenhama), koloru tła, algorytmu wyznaczającego offset. 
+
+Drawing mode: 
+1) LPM: postawienie wierzchołka w wybranym punkcie lub w przypadku wybrania punktu w pobliżu początkowego punktu wierzchołka - zakończenie wielokąta (pod warunkiem, że ma on już co najmniej trzy wierzchołki) 
+2) PPM: zakończenie wielokąta (pod warunkiem, że ma on już co najmniej trzy wierzchołki - wpp. porzucenie dotychczas narysowanej części wielokąta) 
+3) Color button: zmiana aktualnego koloru rysowania, czyli każda krawędź włącznie z aktualnie rysowaną będzie rysowana wybranym kolorem. 
+4) ESC: porzucenie dotychczas narysowanej części wielokąta
+
+Editting mode: 
+1) LPM: w przypadku kliknięcia punktu w pobliżu wierzchołka/ w pobliżu krawędzi/ wewnątrz wielokąta rozpoczęcie przesuwania odpowiednio wierzchołka / krawędzi / wielokąta. 
+2) Double click: w przypadku kliknięcia punktu w pobliżu krawędzi dodanie wierzchołka na tej krawędzi w punkcie najbliższym lokalizacji kursora 
+3) PPM: w przypadku kliknięcia punktu 
+- w pobliżu wierzchołka usunięcie tego wierzchołka (pod warunkiem, że wielokąt ma co więcej niż trzy wierzchołki)
+- w pobliżu krawędzi wyświetlenie context menu z możliwością dodania relacji krawędzi pionowej lub poziomej 
+- wewnątrz wielokąta wyznaczenie offsetu tego wielokąta zgodnie z aktualną wartością na kontrolce track bar (dopóki nie naciśniemy gdzieś indziej można ten offset płynnie zmieniać) 
+5) ESC: w przypadku gdy wielokąt był wcześniej zaznaczony PPM (i nie został odznaczony kliknięciem gdzieś indziej) usunięcie tego wielokąta 
+
+Algorytm relacji 
+Dla każdego wielokąta przechowuję listę krawędzi (List<List<Edge> edges w klasie Manager). W klasie Edge mam pole informujące jaka, jeśli w ogóle, relacja jest nałożona na daną krawędź (pole direction, Any oznacza, że na krawędź nie została nałożona relacja). 
+Po kliknięciu na krawędź PPM w trybie Editting pojawia się context menu, poprzez które możemy wybrać relację dla danej krawędzi (przed wyświetleniem menu sprawdzam czy sąsiednie krawędzie mają już nałożoną jakąś relację, jeśli tak ustawiam pole odpowiadające danej relacji jako niedostępne w context menu tak żeby niemożliwe było dodanie takich samych relacji sąsiednim bokom). Context menu w taki sam sposób umożliwa usunięcie relacji, poprzez odznaczenie wcześniej wybranej. Jakiekolwiek zmiany w wybranej krawędzi zapamiętuję w odpowiadającym jej obiekcie Edge.
+Po dodaniu relacji (a także przy przesuwaniu wierzchołka/krawędzi) wywołuję funkcje updateRel(int i, int j) z klasy EditMode, która dla j-tej krawędzi i-tego wielokąta w programie w razie konieczności, czyli w przypadku istnienia relacji, aktualizuje współrzędne wierzchołka następnego po j-tym oraz poprzedzającego j-ty, tak żeby zachowane były relacje (tzn. zrównanie współrzędnej X-owej w przypadku relacji Vertical i Y-kowej w przypadku Horizontal sąsiedniego wierzchołka do współrzędnej j-tego wierzchołka).
+Przy usuwaniu/dodawaniu wierzchołka usuwam relacje z przyległych krawędzi. 
+Przy rysowaniu sceny sprawdzam czy dana krawędź ma nałożone jakieś ograniczenie, jeżeli tak wyznaczam odcinek równoległy do niej, a następnie punkt środkowy tego odcinka, żeby w danej odległości od krawędzi narysować ikonkę związaną z relacją - literkę H dla krawędzi poziomych i literkę V dla pionowych.
+
+Algorytm wyznaczania offsetu 
+Przygotowałam kilka opcji - I algorytm jest tym, który wydawał mi się najbardziej zgodny z założeniami, jednak mimo poprawek zawsze udawało mi się znaleźć jakiś kontrprzykład na jego poprawność, także n wszelki wypadek zostawiam jeszcze dwie alternatywne opcje 🙂 
+II) Funkcja findOffsetPolygon w klasie EditMode
+Algorytm kolejno dla każdego wierzchołka wyznacza odcinki równolegle do krawędzi, których częścią jest ten wierzchołek, znajduje przecięcie tych odcinków (ich przedłużeń) i w ten sposób wyznacza wierzchołek przesunięty będący wierzchołkiem wielokąta offsetu. Punkty tworzące wielokąt odsunięty są przekazywane przez parametr wyjściowy points i zapisywane dla odpowiedniego wielokąta na liście notFixed w klasie Manager. 
+I)  Funkcja findOffsetPolygon w klasie EditMode
+Tak jak w I) tylko usuwam samoprzecięcia w wielokącie odsuniętym - funkcja fixSelfIntersections w klasie EditMode. 
+Niech points - punkty "nienaprawione" wielokąta odsuniętego, offset - docelowy, naprawiony zbiór punktów wielokąta odsuniętego.
+Przyjmijmy, że wielokąt był narysowany przeciwnie do ruchu wskazówek zegara (wpp. należy wziąć wartość przeciwną do zadanej wartości offsetu).
+Startując od i=0 dodajemy i-te wierzchołki z points do offset dopóki nie napotkamy samoprzecięcia, czyli przecięcie i-tej krawędzi (zapamiętajmy jej indeks w removeStart) z którąś z kolejnych (pomijając oczywiście sąsiednią), nazwijmy jej indeks addStart. Przecięcia z kolejnymi krawędziami sprawdzamy od ostatniej krawędi. Po trafieniu na samoprzecięcie dodajemy punkt przecięcie do offset, i dopóki nie znajdziemy "wyjścia" z wielokąta, czyli kolejnego samoprzecięcia, nie dodajemy rozważanych wierzchołków do offset. Szukając "wyjścia" należy nie tylko szukać przecięć z kolejnymi krawędziami, ale też sprawdzić czy rozpatrywana aktualnie krawędź nie przecina się z krawędzią removeStart, tzn. czy wejście i wyjście z wnętrza wielokąta nie nastąpiło w tym samym punkcie (pętla). W przypadku gdy znaleźliśmy wyjście przez którąś z kolejnych krawędzi, nazwijmy ją addEnd, dodajemy do offset kopie wszystkich wierzchołków pomiędzy addStart a addEnd, a następnie dodajemy wyjściowy punkt przecięcia do offset. W przypadku pętli wystarczy dodać punkt wyjściowy. W ten sposób usuwany miejsce, w których wielokąt nachodzi sam na siebie. 
+Punkty tworzące wielokąt odsunięty są zapisywane dla odpowiedniego wielokąta na liście offsets w klasie Manager.
+III) Funkcja drawOffsetPolygon w klasie EditMode
+Algorytm, który rysuje offset wielokąta w następujący sposób: dla każdego wierzchołka na krawędzi, która zaczyna się tym wierzchołkiem zamalowuje prostokąt o drugim boku długości offset (poprzez wyznaczenie odcinka równoległego do krawędzi, odsuniętego o offset) oraz zamalowuje okrąg o promieniu offset i środku w wierzchołku. Wartości offsetów dla odpowiednich wielokątów są zapisywane w liście offsetsValue w klasie Manager. 
+I-III) Dla wszystkich algorytmów w przypadku wielokątów rysowanych zgodnie z ruchem wskazówek zegara należy zmienić znak offsetu na ujemny ponieważ wpp. byłby on rysowany w środku wielokąta. 
+Przy edycji/przesuwaniu wielokąta jego offset jest powtórnie wyznaczany, tak samo w przypadku modyfikacji wartości offsetu na kontrolce track bar dla zaznaczonego PPM w trybie Editting wielokąta.
