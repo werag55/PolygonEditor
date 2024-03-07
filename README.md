@@ -1,5 +1,7 @@
 # PolygonEditor
 
+<img width="1280" alt="image" src="https://github.com/werag55/PolygonEditor/assets/147431062/7f291c15-7ab5-4304-b7ac-419bb2a08bb1">
+
 ## Menu bar:
 1) Mode: possible to change mode between drawing and editing.
 2) Settings: possible to change settings, i.e. the line drawing algorithm (library/Bresenham), background color, offset algorithm.
