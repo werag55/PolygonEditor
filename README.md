@@ -41,14 +41,14 @@ from the edge - the letter H for horizontal edges and the letter V for vertical 
 
 ## Offset determination algorithm
 I have prepared several options
-2) findOffsetPolygon function in the EditMode class
+1) FindOffsetPolygon function in the EditMode class
 
 For each vertex, the algorithm determines segments parallel to the edges of which this vertex is a part, finds the intersection of these segments (their extensions) and thus determines the shifted vertex, which is the vertex of the offset 
 polygon. The points that make up the offset polygon are passed through the points output parameter and saved for the appropriate polygon in the notFixed list in the Manager class.
 
-1) FindOffsetPolygon function in the EditMode class
+2) FindOffsetPolygon function in the EditMode class
 
-As in 2. but I also remove self-intersections in the offset polygon - fixSelfIntersections function in the EditMode class.
+As in 1. but I also remove self-intersections in the offset polygon - fixSelfIntersections function in the EditMode class.
 
 Let points - "unrepaired" points of the offset polygon, offset - target, repaired set of points of the offset polygon.
 
